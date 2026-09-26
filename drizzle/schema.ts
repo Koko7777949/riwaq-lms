@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -15,6 +15,16 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  emailNotifications: boolean("emailNotifications").default(false).notNull(),
+  phoneNumber: varchar("phoneNumber", { length: 16 }),
+  smsOptIn: boolean("smsOptIn").default(false).notNull(),
+  smsOptInAt: timestamp("smsOptInAt"),
+  smsOptOutAt: timestamp("smsOptOutAt"),
+  lastEmailTestAt: timestamp("lastEmailTestAt"),
+  lastSmsTestAt: timestamp("lastSmsTestAt"),
+  aiDailyRequestDate: varchar("aiDailyRequestDate", { length: 10 }),
+  aiDailyRequests: int("aiDailyRequests").default(0).notNull(),
+  lastAiRequestAt: timestamp("lastAiRequestAt"),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
