@@ -64,6 +64,71 @@ export const billingRouter = router({
     return { courseIds: rows.map((row) => row.courseId) };
   }),
 
+  studentDashboard: protectedProcedure.query(async ({ ctx }) => {
+    const db = await database();
+    if (providerReady()) {
+      const pendingOrders = await db.select().from(courseOrders)
+        .where(and(eq(courseOrders.userId, ctx.user.id), eq(courseOrders.status, "pending")))
+        .orderBy(desc(courseOrders.createdAt)).limit(12);
+      for (const order of pendingOrders) {
+        if (!order.stripeSessionId) continue;
+        try {
+          await getVerifiedSessionStatus(db, order);
+        } catch {
+          // Preserve the dashboard during transient Stripe failures; pending is not proof of payment.
+        }
+      }
+    }
+
+    const [orders, enrollments] = await Promise.all([
+      db.select({
+        courseId: courseOrders.courseId,
+        amountMinor: courseOrders.amountMinor,
+        currency: courseOrders.currency,
+        status: courseOrders.status,
+        createdAt: courseOrders.createdAt,
+        paidAt: courseOrders.paidAt,
+      }).from(courseOrders)
+        .where(eq(courseOrders.userId, ctx.user.id))
+        .orderBy(desc(courseOrders.createdAt)).limit(50),
+      db.select({
+        courseId: courseEnrollments.courseId,
+        enrolledAt: courseEnrollments.enrolledAt,
+      }).from(courseEnrollments)
+        .where(eq(courseEnrollments.userId, ctx.user.id)),
+    ]);
+
+    const enrollmentByCourse = new Map(enrollments.map((enrollment) => [enrollment.courseId, enrollment]));
+    const payments = orders.flatMap((order) => {
+      const course = getPaidCourse(order.courseId);
+      if (!course) return [];
+      return [{
+        courseId: course.id,
+        courseTitle: course.title,
+        instructor: course.instructor,
+        amountMinor: order.amountMinor,
+        currency: order.currency,
+        status: order.status,
+        createdAt: order.createdAt,
+        paidAt: order.paidAt,
+      }];
+    });
+    const courses = payments.flatMap((payment) => {
+      const enrollment = enrollmentByCourse.get(payment.courseId);
+      if (payment.status !== "paid" || !enrollment) return [];
+      return [{
+        courseId: payment.courseId,
+        title: payment.courseTitle,
+        instructor: payment.instructor,
+        amountMinor: payment.amountMinor,
+        currency: payment.currency,
+        purchasedAt: payment.paidAt ?? enrollment.enrolledAt,
+      }];
+    });
+
+    return { courses, payments };
+  }),
+
   orderStatus: protectedProcedure
     .input(z.object({ sessionId: z.string().regex(/^cs_(test|live)_[A-Za-z0-9_]+$/).max(255) }))
     .query(async ({ ctx, input }) => {

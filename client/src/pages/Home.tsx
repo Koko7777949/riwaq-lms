@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { useLocation } from "wouter";
 
 type Course = {
   id: number;
@@ -133,6 +134,7 @@ function RevenueChart() {
 
 export default function Home() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const paymentReadiness = trpc.billing.readiness.useQuery();
   const myCoursesQuery = trpc.billing.myCourses.useQuery(undefined, { enabled: isAuthenticated });
@@ -146,7 +148,7 @@ export default function Home() {
     enabled: isAuthenticated && checkoutReturn.kind === "success" && Boolean(checkoutReturn.sessionId),
     refetchInterval: (query) => query.state.data?.status === "pending" && query.state.dataUpdateCount < 30 ? 2_000 : false,
   });
-  const [view, setView] = useState<View>("discover");
+  const [view, setView] = useState<View>(() => new URLSearchParams(window.location.search).get("view") === "learning" ? "learning" : "discover");
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [category, setCategory] = useState("الكل");
   const [query, setQuery] = useState("");
@@ -170,7 +172,13 @@ export default function Home() {
   const visiblePayouts = payouts.filter((row) => (payoutFilter === "الكل" || row.status.includes(payoutFilter)) && `${row.name} ${row.id}`.includes(financeSearch));
 
   const go = (next: View) => {
-    if (next === "learning" && !isAuthenticated) { startLogin(); return; }
+    if (next === "learning") {
+      if (!isAuthenticated) { startLogin(); return; }
+      setShowMobileNav(false);
+      setLocation("/dashboard");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     setView(next); setShowMobileNav(false); setFocusedCourse(null); window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const enroll = async (course: Course) => {
@@ -213,14 +221,14 @@ export default function Home() {
 
   return <div className="app-shell" dir="rtl">
     <header className={`topbar ${sidebar ? "topbar-dashboard" : ""}`}>
-      <div className="topbar-start"><button className="mobile-menu" onClick={() => setShowMobileNav(!showMobileNav)} aria-label="القائمة"><Menu size={21} /></button><Brand onClick={() => go("discover")} />{!sidebar && <nav className="public-nav"><button className={view === "discover" ? "nav-link active" : "nav-link"} onClick={() => go("discover")}>الرئيسية</button><button className="nav-link" onClick={() => { go("discover"); document.getElementById("courses")?.scrollIntoView({ behavior: "smooth" }); }}>الدورات</button><button className={view === "learning" ? "nav-link active" : "nav-link"} onClick={() => go("learning")}>مساري</button><button className="nav-link" onClick={() => go("instructor")}>للمدرّسين</button></nav>}</div>
-      <div className="topbar-end"><button className="top-search" onClick={() => { go("discover"); setTimeout(() => document.getElementById("course-search")?.focus(), 50); }}><Search size={16} /><span>ابحث عن دورة</span><kbd>⌘ K</kbd></button><div className="notification-wrap"><button className="round-action" aria-label="الإشعارات" onClick={() => setNotificationsOpen(!notificationsOpen)}><Bell size={18} /><i /></button>{notificationsOpen && <div className="notification-pop"><strong>إشعاراتك</strong><span><Check size={15} /> أُضيف درس جديد لمسار التصميم</span><span><Wallet size={15} /> تم تحديث ملخص الإيرادات</span><button onClick={() => setNotificationsOpen(false)}>إغلاق</button></div>}</div><button className="top-avatar" onClick={() => go("learning")} aria-label="الملف الشخصي">م</button></div>
+      <div className="topbar-start"><button className="mobile-menu" onClick={() => setShowMobileNav(!showMobileNav)} aria-label="القائمة"><Menu size={21} /></button><Brand onClick={() => go("discover")} />{!sidebar && <nav className="public-nav"><button className={view === "discover" ? "nav-link active" : "nav-link"} onClick={() => go("discover")}>الرئيسية</button><button className="nav-link" onClick={() => { go("discover"); document.getElementById("courses")?.scrollIntoView({ behavior: "smooth" }); }}>الدورات</button><button className="nav-link" onClick={() => go("learning")}>لوحة الطالب</button><button className="nav-link" onClick={() => go("instructor")}>للمدرّسين</button></nav>}</div>
+      <div className="topbar-end"><button className="top-search" onClick={() => { go("discover"); setTimeout(() => document.getElementById("course-search")?.focus(), 50); }}><Search size={16} /><span>ابحث عن دورة</span><kbd>⌘ K</kbd></button><div className="notification-wrap"><button className="round-action" aria-label="الإشعارات" onClick={() => setNotificationsOpen(!notificationsOpen)}><Bell size={18} /><i /></button>{notificationsOpen && <div className="notification-pop"><strong>إشعاراتك</strong><span><Check size={15} /> أُضيف درس جديد لمسار التصميم</span><span><Wallet size={15} /> تم تحديث ملخص الإيرادات</span><button onClick={() => setNotificationsOpen(false)}>إغلاق</button></div>}</div><button className="top-avatar" onClick={() => go("learning")} aria-label="لوحة الطالب">{user?.name?.trim().slice(0, 1) || "م"}</button></div>
     </header>
 
     {!sidebar && showMobileNav && <nav className="mobile-drawer" aria-label="قائمة التنقل">
       <button onClick={() => go("discover")}><Search size={17}/>استكشف الدورات</button>
       <button onClick={() => { go("discover"); setTimeout(() => document.getElementById("courses")?.scrollIntoView({ behavior: "smooth" }), 30); }}><BookOpen size={17}/>كل الدورات</button>
-      <button onClick={() => go("learning")}><GraduationCap size={17}/>مساري التعليمي</button>
+      <button onClick={() => go("learning")}><GraduationCap size={17}/>لوحة الطالب</button>
       <button onClick={() => go("instructor")}><LayoutDashboard size={17}/>مساحة المعلّم</button>
     </nav>}
 

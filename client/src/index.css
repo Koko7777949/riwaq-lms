@@ -93,3 +93,169 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .checkout-status-banner { width: calc(100% - 28px); margin-top: 12px; padding: 10px; align-items: flex-start; font-size: 10px; }
   .checkout-status-banner button { align-self: center; }
 }
+
+/* student dashboard */
+.student-dashboard-shell { min-height:100vh; background:#faf9f6; color:#25342e; display:flex; flex-direction:column; }
+.student-topbar { position:sticky; top:0; z-index:30; }
+.student-top-nav { display:flex; align-items:center; gap:24px; height:78px; }
+.student-top-nav button,.student-top-nav span { display:flex; align-items:center; height:100%; border:0; background:none; color:#738078; font-size:12px; }
+.student-top-nav button:hover,.student-top-nav .active { color:#1f5c49; }
+.student-top-nav .active { border-bottom:2px solid #1f5c49; font-weight:600; }
+.student-topbar-end { display:flex; align-items:center; gap:18px; }
+.student-user-chip { display:flex; align-items:center; gap:8px; color:#68766d; font-size:11px; }
+.student-user-chip>span { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:#e9e2d5; color:#426047; font-size:12px; font-weight:700; }
+.student-home-link { border:0; background:none; display:flex; align-items:center; gap:8px; color:#4a7153; font-size:11px; }
+.student-dashboard-main { flex:1; width:min(1120px, calc(100% - 64px)); margin:0 auto; padding:29px 0 72px; }
+.student-page-topline { display:flex; align-items:center; justify-content:space-between; }
+.student-page-topline .page-breadcrumb { gap:11px; }
+.student-test-pill { display:flex; align-items:center; gap:6px; color:#668193; font-size:10px; background:#edf3f4; border:1px solid #dde7e8; border-radius:20px; padding:7px 10px; }
+.student-welcome { margin:33px 0 23px; padding:27px 30px; min-height:157px; border:1px solid #e6e8df; border-radius:13px; background:radial-gradient(ellipse at 7% 20%,#e5eee2 0,transparent 45%),linear-gradient(110deg,#f3f3eb 0%,#faf9f6 73%); display:flex; align-items:center; justify-content:space-between; overflow:hidden; position:relative; }
+.student-welcome::after { content:""; position:absolute; width:210px; height:210px; border:1px solid #dce5d9; border-radius:50%; left:52px; top:-95px; pointer-events:none; }
+.student-welcome h1 { margin:8px 0 2px; font-size:clamp(30px,4vw,41px); line-height:1.35; letter-spacing:-.05em; font-weight:600; color:#2a3b31; }
+.student-welcome h1 em,.student-card-heading h2 em { color:#3e7658; font-style:normal; }
+.student-welcome p { margin:5px 0 0; color:#7f8a81; font-size:12px; }
+.student-welcome-mark { z-index:1; width:92px; height:92px; margin-left:24px; border:1px solid #d9e5d8; border-radius:50%; background:#eef4ec; color:#4e7858; display:grid; place-items:center; align-content:center; gap:3px; transform:rotate(-7deg); }
+.student-welcome-mark span { font-size:10px; font-weight:600; }
+.student-test-note { display:flex; align-items:center; gap:8px; padding:11px 14px; border-radius:8px; background:#f0f6f6; border:1px solid #dce8e8; color:#6d8083; font-size:10px; margin-bottom:15px; }
+.student-test-note svg { flex:none; color:#698590; }
+.student-test-note b { color:#526e78; }
+.student-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; margin:0 0 18px; }
+.student-metric-card { display:flex; align-items:center; gap:13px; min-height:88px; padding:15px 17px; border:1px solid #e8e9e2; background:#fffefa; border-radius:10px; box-shadow:0 3px 12px #2a3e3006; }
+.student-metric-icon { flex:none; width:39px; height:39px; display:grid; place-items:center; border-radius:10px; }
+.student-metric-icon.green { color:#4f805b; background:#eaf2e8; }
+.student-metric-icon.sand { color:#a77b4e; background:#f6eee1; }
+.student-metric-icon.blue { color:#637f8e; background:#eaf0f2; }
+.student-metric-card>div { display:grid; gap:5px; min-width:0; }
+.student-metric-card small { color:#879189; font-size:10px; }
+.student-metric-card b { color:#33483a; font:600 19px 'DM Sans','IBM Plex Sans Arabic',sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.student-content-card { border:1px solid #e8e9e2; background:#fffefa; border-radius:12px; box-shadow:0 6px 22px #2d40300a; overflow:hidden; }
+.student-card-heading { padding:21px 23px 15px; display:flex; align-items:center; justify-content:space-between; }
+.student-card-heading h2 { margin:4px 0 0; font-size:21px; font-weight:600; letter-spacing:-.04em; }
+.student-refresh,.student-secondary-button { display:flex; align-items:center; justify-content:center; gap:7px; border:1px solid #e3e8df; background:#fffefa; color:#64806a; border-radius:7px; padding:8px 11px; font-size:10px; transition:background .16s,color .16s,transform .16s var(--ease-out); }
+.student-refresh:hover,.student-secondary-button:hover { background:#eef3ec; color:#386548; }
+.student-refresh:active,.student-secondary-button:active { transform:scale(.97); }
+.student-refresh:disabled { opacity:.6; cursor:wait; }
+.student-tabs { display:flex; gap:24px; padding:0 23px; border-bottom:1px solid #eceee8; }
+.student-tabs button { position:relative; display:flex; align-items:center; gap:8px; padding:12px 3px 13px; border:0; background:none; color:#8a958b; font-size:11px; }
+.student-tabs button.active { color:#315e42; font-weight:600; }
+.student-tabs button.active::after { content:""; position:absolute; bottom:-1px; right:0; left:0; height:2px; border-radius:3px; background:#3e7658; }
+.student-tabs button>span { min-width:19px; height:19px; padding:0 5px; display:grid; place-items:center; border-radius:6px; background:#f1f2ed; color:#7d897e; font:10px 'DM Sans','IBM Plex Sans Arabic',sans-serif; }
+.student-tabs button.active>span { color:#3e7658; background:#edf3eb; }
+.student-course-list { display:grid; padding:13px 18px 19px; }
+.student-course-row { display:flex; align-items:stretch; gap:16px; padding:12px 5px; border-bottom:1px solid #f0f0eb; }
+.student-course-row:last-child { border-bottom:0; }
+.student-course-art { width:112px; min-height:104px; border-radius:8px; flex:none; display:grid; place-items:center; position:relative; overflow:hidden; }
+.student-course-art::before,.student-course-art::after { content:""; position:absolute; width:125px; height:125px; border:1px solid currentColor; border-radius:50%; opacity:.18; }
+.student-course-art::before { transform:translate(-22px,8px); }.student-course-art::after { width:80px; height:80px; transform:translate(18px,-9px); }
+.student-course-art>span { font:48px 'DM Sans',sans-serif; opacity:.78; z-index:1; }
+.student-course-art>i { position:absolute; right:8px; bottom:7px; width:25px; height:25px; display:grid; place-items:center; border-radius:7px; color:#47704f; background:#fffefaeb; font-style:normal; }
+.student-course-details { flex:1; min-width:0; padding:4px 0 1px; display:flex; flex-direction:column; justify-content:space-between; }
+.student-course-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+.student-course-instructor { color:#819087; font-size:9px; }
+.student-course-heading h3 { margin:4px 0 0; color:#304137; font-size:14px; line-height:1.55; }
+.student-access-pill { flex:none; display:flex; align-items:center; gap:5px; padding:6px 8px; border:1px solid #e0eddf; background:#f2f7ef; border-radius:16px; color:#59815d; font-size:9px; }
+.student-course-meta { margin-top:12px; display:flex; align-items:center; flex-wrap:wrap; gap:9px 18px; color:#909a91; font-size:9px; }
+.student-course-meta>span { display:flex; align-items:center; gap:5px; }
+.student-course-meta>span:first-child { color:#53695a; font-family:'DM Sans','IBM Plex Sans Arabic',sans-serif; }
+.student-course-meta button { display:flex; align-items:center; gap:6px; margin-right:auto; padding:3px 0; border:0; background:none; color:#44704f; font-size:10px; }
+.student-course-meta button:hover { color:#244b34; }
+.student-payment-list { min-height:180px; }
+.student-table-wrap { overflow-x:auto; }
+.student-payment-table { border-collapse:collapse; width:100%; text-align:right; }
+.student-payment-table th { padding:13px 22px; background:#fbfbf7; color:#8c968e; border-bottom:1px solid #eff0ea; font-size:9px; font-weight:500; white-space:nowrap; }
+.student-payment-table td { padding:13px 22px; border-bottom:1px solid #f0f1ec; color:#7e8980; font-size:10px; white-space:nowrap; }
+.student-payment-table tbody tr:last-child td { border-bottom:0; }
+.student-payment-course { display:flex; align-items:center; gap:10px; min-width:220px; white-space:normal; }
+.student-payment-course>span { flex:none; width:32px; height:32px; display:grid; place-items:center; border-radius:8px; background:#eef2e9; color:#658269; font:19px 'DM Sans',sans-serif; }
+.student-payment-course>div { display:grid; gap:3px; }
+.student-payment-course b { color:#3a4a3e; font-size:10px; font-weight:600; line-height:1.5; }
+.student-payment-course small { color:#98a097; font-size:8px; }
+.student-payment-table td.student-payment-amount { color:#394d3f; font:600 11px 'DM Sans','IBM Plex Sans Arabic',sans-serif; }
+.student-status { display:inline-flex; align-items:center; gap:5px; padding:6px 8px; border-radius:15px; font-size:9px; }
+.student-status.paid { color:#54805b; background:#eef5eb; }
+.student-status.pending { color:#9a7644; background:#f8f1e5; }
+.student-status.expired,.student-status.failed { color:#898b83; background:#f1f1ec; }
+.student-empty { min-height:250px; padding:26px 20px; display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; }
+.student-empty-icon,.student-login-icon { width:48px; height:48px; display:grid; place-items:center; border-radius:14px; background:#edf3ea; color:#5a805d; }
+.student-empty>b { margin-top:12px; color:#405246; font-size:13px; }
+.student-empty>p { margin:5px 0 14px; color:#929b93; font-size:10px; line-height:1.8; }
+.student-empty>.button-dark { margin-top:3px; }
+.student-login-card { padding:22px; border:1px solid #e6e8df; background:#fffefa; border-radius:12px; display:flex; align-items:center; gap:15px; box-shadow:0 6px 22px #2d40300a; }
+.student-login-card>div { flex:1; }
+.student-login-card h2 { margin:0 0 5px; color:#34463a; font-size:15px; }
+.student-login-card p { margin:0; color:#879188; font-size:10px; line-height:1.7; }
+.student-login-card .button-dark { flex:none; }
+.student-loading { min-height:160px; display:flex; align-items:center; justify-content:center; gap:9px; color:#849087; font-size:11px; }
+.student-panel-loading { min-height:230px; }
+.student-spin { animation:student-spin .9s linear infinite; }
+@keyframes student-spin { to { transform:rotate(360deg); } }
+.student-privacy-note { display:flex; align-items:center; gap:7px; margin-top:14px; color:#8d988e; font-size:9px; }
+.student-privacy-note svg { flex:none; color:#719174; }
+.student-footer { display:flex; align-items:center; gap:23px; padding:17px max(5.6vw,32px); border-top:1px solid #e8e8e0; background:#f2f1eb; color:#8c958d; font-size:10px; }
+.student-footer .brand { margin-left:auto; }.student-footer .brand-mark { width:29px; height:29px; border-radius:8px 8px 8px 2px; }.student-footer .brand-name { font-size:17px; color:#35473b; }.student-footer .brand-name small { display:none; }
+@media (max-width: 900px) {
+  .student-dashboard-main { width:min(100% - 40px, 760px); }
+  .student-topbar { padding:0 24px; }
+  .student-top-nav { gap:16px; }
+  .student-welcome-mark { width:74px; height:74px; }
+}
+@media (max-width: 640px) {
+  .student-topbar { height:66px; padding:0 16px; }
+  .student-top-nav { display:none; }
+  .student-topbar-end { gap:8px; }
+  .student-user-chip { max-width:145px; font-size:9px; }
+  .student-user-chip>span { width:27px; height:27px; }
+  .student-home-link { font-size:10px; }
+  .student-dashboard-main { width:calc(100% - 30px); padding:20px 0 44px; }
+  .student-page-topline { align-items:flex-start; gap:9px; }
+  .student-test-pill { font-size:8px; padding:6px 7px; white-space:nowrap; }
+  .student-welcome { min-height:137px; margin:23px 0 14px; padding:20px 17px; }
+  .student-welcome h1 { font-size:30px; }
+  .student-welcome p { max-width:245px; font-size:10px; line-height:1.8; }
+  .student-welcome-mark { width:55px; height:55px; margin-left:0; }
+  .student-welcome-mark svg { width:21px; }
+  .student-welcome-mark span { font-size:8px; }
+  .student-welcome::after { left:4px; }
+  .student-metrics { grid-template-columns:1fr; gap:8px; margin-bottom:13px; }
+  .student-metric-card { min-height:70px; padding:11px 13px; }
+  .student-metric-icon { width:35px; height:35px; }
+  .student-metric-card>div { grid-template-columns:1fr auto; align-items:center; width:100%; }
+  .student-metric-card b { font-size:16px; }
+  .student-card-heading { padding:17px 15px 13px; }
+  .student-card-heading h2 { font-size:18px; }
+  .student-tabs { gap:17px; padding:0 15px; }
+  .student-tabs button { gap:6px; font-size:10px; }
+  .student-course-list { padding:7px 11px 14px; }
+  .student-course-row { gap:10px; padding:10px 0; }
+  .student-course-art { width:72px; min-height:75px; }
+  .student-course-art>span { font-size:35px; }
+  .student-course-art>i { right:5px; bottom:5px; width:22px; height:22px; }
+  .student-course-heading h3 { font-size:11px; line-height:1.6; }
+  .student-course-instructor { font-size:8px; }
+  .student-access-pill { padding:4px 6px; font-size:7px; gap:3px; }
+  .student-access-pill svg { width:11px; }
+  .student-course-meta { gap:6px 10px; margin-top:8px; font-size:8px; }
+  .student-course-meta>span svg { width:12px; }
+  .student-course-meta button { width:100%; margin-right:0; justify-content:flex-start; font-size:9px; }
+  .student-payment-table,.student-payment-table tbody { display:block; width:100%; }
+  .student-payment-table thead { display:none; }
+  .student-payment-table tr { display:grid; grid-template-columns:1fr auto; gap:6px 10px; padding:12px 14px; border-bottom:1px solid #f0f1ec; }
+  .student-payment-table tbody tr:last-child { border-bottom:0; }
+  .student-payment-table td { padding:0; border:0; font-size:9px; }
+  .student-payment-table td:first-child { grid-column:1/-1; }
+  .student-payment-course { min-width:0; }
+  .student-payment-course b { font-size:9px; }
+  .student-status { padding:5px 7px; font-size:8px; }
+  .student-payment-table td.student-payment-amount { font-size:10px; text-align:left; }
+  .student-payment-table td:nth-child(2) { align-self:center; }
+  .student-login-card { align-items:flex-start; flex-wrap:wrap; padding:17px; gap:11px; }
+  .student-login-card>div { flex-basis:calc(100% - 60px); }
+  .student-login-card p { font-size:9px; }
+  .student-login-card .button-dark { width:100%; }
+  .student-footer { padding:15px; gap:10px; flex-wrap:wrap; font-size:8px; }
+  .student-footer .brand { margin-left:auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-spin { animation-duration:2.4s; }
+  .student-refresh,.student-secondary-button { transition:none; }
+}
