@@ -73,3 +73,23 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .mobile-drawer button { display:flex;align-items:center;gap:10px;text-align:right;height:42px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:#5f7164;font-size:11px; }
   .mobile-drawer button:hover { background:#eff4ec;color:#2f6142; }
 }
+
+
+/* Stripe Checkout readiness and verified-return states */
+.checkout-status-banner { margin: 18px auto 0; width: min(1100px, calc(100% - 48px)); min-height: 48px; padding: 11px 14px; border: 1px solid #e4e8de; border-radius: 8px; background: #fffefa; color: #56685b; display: flex; align-items: center; gap: 10px; font-size: 11px; line-height: 1.8; }
+.checkout-status-banner svg { flex: none; color: #507c5a; }
+.checkout-status-banner span { flex: 1; }
+.checkout-status-banner b { color: #31483a; }
+.checkout-status-banner code { direction: ltr; unicode-bidi: isolate; font: 10px 'DM Sans', monospace; color: #415849; }
+.checkout-status-banner button { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 6px; padding: 7px 10px; background: #1f5c49; color: white; font-size: 10px; }
+.checkout-disabled,.checkout-waiting { border-color: #eedcc2; background: #fcf7ef; }
+.checkout-disabled svg,.checkout-waiting svg { color: #a77b45; }
+.checkout-confirmed { border-color: #cfe3d2; background: #f3f8f1; }
+.checkout-cancelled { border-color: #e8e4da; background: #f7f6f1; }
+.checkout-test-mode { border-color: #d6e2e4; background: #f2f7f7; }
+.course-card-bottom button:disabled,.dialog-cta .button-dark:disabled { opacity: .48; cursor: not-allowed; transform: none; }
+.dialog-cta .button-dark:disabled:hover { background: #1f5c49; }
+@media (max-width: 700px) {
+  .checkout-status-banner { width: calc(100% - 28px); margin-top: 12px; padding: 10px; align-items: flex-start; font-size: 10px; }
+  .checkout-status-banner button { align-self: center; }
+}

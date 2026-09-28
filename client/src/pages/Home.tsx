@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ArrowDownLeft,
   ArrowLeft,
@@ -38,6 +38,9 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { startLogin } from "@/const";
+import { trpc } from "@/lib/trpc";
 
 type Course = {
   id: number;
@@ -100,7 +103,8 @@ function Brand({ onClick }: { onClick: () => void }) {
   return <button className="brand" onClick={onClick} aria-label="العودة للرئيسية"><span className="brand-mark"><span /></span><span className="brand-name">رِواق<span className="brand-dot">.</span><small>منصّة تعلّم</small></span></button>;
 }
 
-function CourseCard({ course, onOpen, onEnroll, enrolled }: { course: Course; onOpen: (course: Course) => void; onEnroll: (course: Course) => void; enrolled: boolean }) {
+function CourseCard({ course, onOpen, onEnroll, enrolled, checkoutReady }: { course: Course; onOpen: (course: Course) => void; onEnroll: (course: Course) => void; enrolled: boolean; checkoutReady: boolean }) {
+  const purchasable = course.id >= 1 && course.id <= 6 && course.instructor !== "أنت";
   return <article className="course-card">
     <button className={`course-cover ${course.color}`} onClick={() => onOpen(course)} aria-label={`عرض ${course.title}`}>
       <span className="cover-orbit orbit-one" /><span className="cover-orbit orbit-two" />
@@ -112,7 +116,7 @@ function CourseCard({ course, onOpen, onEnroll, enrolled }: { course: Course; on
       <div className="course-rating"><span><Star size={14} fill="currentColor" /> {course.rating}</span><span>{course.students} متعلّم</span></div>
       <button className="course-title" onClick={() => onOpen(course)}>{course.title}</button>
       <div className="course-instructor"><span className="tiny-avatar">{course.instructor.slice(0, 1)}</span>{course.instructor}<span className="course-lessons"><BookOpen size={14} />{course.lessons} درس</span></div>
-      <div className="course-card-bottom"><strong>{money(course.price)}</strong><button className={enrolled ? "icon-action is-saved" : "icon-action"} onClick={() => onEnroll(course)} aria-label={enrolled ? "أُضيف لمسارك" : "أضف إلى مساري"}>{enrolled ? <Check size={17} /> : <Plus size={17} />}</button></div>
+      <div className="course-card-bottom"><strong>{money(course.price)}</strong><button className={enrolled ? "icon-action is-saved" : "icon-action"} onClick={() => onEnroll(course)} disabled={!enrolled && (!purchasable || !checkoutReady)} aria-label={enrolled ? "افتح الدورة" : purchasable ? checkoutReady ? "شراء الدورة" : "الدفع غير مفعّل حالياً" : "الدورة غير منشورة"}>{enrolled ? <Check size={17} /> : <CreditCard size={17} />}</button></div>
     </div>
   </article>;
 }
@@ -128,11 +132,25 @@ function RevenueChart() {
 }
 
 export default function Home() {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const utils = trpc.useUtils();
+  const paymentReadiness = trpc.billing.readiness.useQuery();
+  const myCoursesQuery = trpc.billing.myCourses.useQuery(undefined, { enabled: isAuthenticated });
+  const checkoutMutation = trpc.billing.checkoutCourse.useMutation();
+  const [checkoutReturn] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return { kind: params.get("checkout"), sessionId: params.get("session_id") ?? "" };
+  });
+  const orderStatusInput = useMemo(() => ({ sessionId: checkoutReturn.sessionId || "cs_test_pending" }), [checkoutReturn.sessionId]);
+  const orderStatus = trpc.billing.orderStatus.useQuery(orderStatusInput, {
+    enabled: isAuthenticated && checkoutReturn.kind === "success" && Boolean(checkoutReturn.sessionId),
+    refetchInterval: (query) => query.state.data?.status === "pending" && query.state.dataUpdateCount < 30 ? 2_000 : false,
+  });
   const [view, setView] = useState<View>("discover");
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [category, setCategory] = useState("الكل");
   const [query, setQuery] = useState("");
-  const [myCourses, setMyCourses] = useState<number[]>([1, 2]);
+  const myCourses = myCoursesQuery.data?.courseIds ?? [];
   const [savedCourses, setSavedCourses] = useState<number[]>([]);
   const [focusedCourse, setFocusedCourse] = useState<Course | null>(null);
   const [financeTab, setFinanceTab] = useState<FinanceTab>("balances");
@@ -151,12 +169,31 @@ export default function Home() {
   const visibleTransactions = transactions.filter((row) => `${row.instructor} ${row.course} ${row.id}`.includes(financeSearch));
   const visiblePayouts = payouts.filter((row) => (payoutFilter === "الكل" || row.status.includes(payoutFilter)) && `${row.name} ${row.id}`.includes(financeSearch));
 
-  const go = (next: View) => { setView(next); setShowMobileNav(false); setFocusedCourse(null); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const enroll = (course: Course) => {
-    if (myCourses.includes(course.id)) { go("learning"); return; }
-    setMyCourses((old) => [...old, course.id]);
-    toast.success("أُضيفت الدورة إلى مسارك التعليمي", { description: course.title });
+  const go = (next: View) => {
+    if (next === "learning" && !isAuthenticated) { startLogin(); return; }
+    setView(next); setShowMobileNav(false); setFocusedCourse(null); window.scrollTo({ top: 0, behavior: "smooth" });
   };
+  const enroll = async (course: Course) => {
+    if (myCourses.includes(course.id)) { go("learning"); return; }
+    if (!isAuthenticated) { toast("سجّل الدخول أولاً", { description: "ستعود إلى رِواق لإتمام شراء الدورة." }); startLogin(); return; }
+    if (course.id < 1 || course.id > 6 || course.instructor === "أنت") { toast.error("هذه المسودة غير منشورة ولا يمكن شراؤها."); return; }
+    if (!paymentReadiness.data?.checkoutConfigured) { toast.error("الدفع غير مفعّل حالياً. أضف مفتاح Stripe التجريبي إلى أسرار المشروع."); return; }
+    try {
+      const result = await checkoutMutation.mutateAsync({ courseId: course.id });
+      if (result.status === "owned") {
+        await utils.billing.myCourses.invalidate();
+        toast.success("الدورة متاحة في مسارك التعليمي");
+        go("learning");
+        return;
+      }
+      window.location.assign(result.url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذّر بدء الدفع. حاول مرة أخرى.");
+    }
+  };
+  useEffect(() => {
+    if (orderStatus.data?.status === "paid") void utils.billing.myCourses.invalidate();
+  }, [orderStatus.data?.status, utils]);
   const toggleSaved = (course: Course) => {
     setSavedCourses((old) => old.includes(course.id) ? old.filter((id) => id !== course.id) : [...old, course.id]);
     toast.success(savedCourses.includes(course.id) ? "أُزيلت من المحفوظات" : "حُفظت الدورة لوقت لاحق");
@@ -204,6 +241,11 @@ export default function Home() {
     </aside>}
 
     <main className={sidebar ? "main-content with-sidebar" : "main-content"}>
+      {checkoutReturn.kind === "success" && <div className={`checkout-status-banner ${orderStatus.data?.status === "paid" ? "checkout-confirmed" : orderStatus.data?.status === "expired" ? "checkout-cancelled" : "checkout-waiting"}`} role="status"><ShieldCheck size={17}/><span><b>{orderStatus.data?.status === "paid" ? "تم تأكيد الدفع" : orderStatus.data?.status === "expired" ? "لم يكتمل الدفع" : "نتحقق من حالة الدفع"}</b> {orderStatus.data?.status === "paid" ? "أُضيفت الدورة إلى مسارك التعليمي." : orderStatus.data?.status === "expired" ? "انتهت جلسة الدفع أو لم تكتمل؛ لم نفتح الدورة." : orderStatus.isError ? "تعذّر التحقق مع Stripe الآن. لا نفتح الدورة حتى نسترجع حالتها الموثّقة." : "نجلب حالة الجلسة مباشرةً من Stripe؛ سيُفتح المسار عند اكتمال الدفع."}</span>{orderStatus.data?.status === "paid" && <button onClick={() => go("learning")}>افتح مسارك <ArrowLeft size={14}/></button>}</div>}
+      {checkoutReturn.kind === "success" && !isAuthenticated && !authLoading && <div className="checkout-status-banner checkout-waiting" role="status"><ShieldCheck size={17}/><span><b>سجّل الدخول للتحقق من طلبك.</b> لا نمنح الوصول اعتماداً على رابط العودة وحده.</span><button onClick={() => startLogin()}>تسجيل الدخول</button></div>}
+      {checkoutReturn.kind === "cancelled" && <div className="checkout-status-banner checkout-cancelled" role="status"><CreditCard size={17}/><span><b>لم يكتمل الدفع.</b> لم نفتح الدورة؛ يمكنك المحاولة مرة أخرى من بطاقة الدورة.</span></div>}
+      {!paymentReadiness.isLoading && !paymentReadiness.data?.checkoutConfigured && view === "discover" && <div className="checkout-status-banner checkout-disabled"><ShieldCheck size={17}/><span><b>الدفع معطّل حالياً.</b> أضف <code>RIWAQ_STRIPE_SECRET_KEY</code> التجريبي إلى أسرار المشروع لتفعيل شراء الدورات.</span></div>}
+      {paymentReadiness.data?.checkoutConfigured && <div className="checkout-status-banner checkout-test-mode"><ShieldCheck size={17}/><span><b>وضع الاختبار مفعل.</b> لا تُحصّل هذه التهيئة مدفوعات حقيقية.</span></div>}
       {view === "discover" && <>
         <section className="hero-section">
           <div className="hero-copy"><div className="eyebrow"><Sparkles size={14} /> تعلّم مهارة تغيّر مسارك</div><h1>مكانٌ يلتقي فيه<br /><em>الشغف بالمعرفة.</em></h1><p>دورات عملية يقدّمها خبراء عرب. تعلّم على مهل، وطبّق بثقة، واصنع خطوتك القادمة.</p><div className="hero-search"><Search size={19} /><input id="course-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ما المهارة التي تودّ تعلّمها؟" onKeyDown={(e) => e.key === "Enter" && document.getElementById("courses")?.scrollIntoView({ behavior: "smooth" })} /><button onClick={() => document.getElementById("courses")?.scrollIntoView({ behavior: "smooth" })}>اكتشف الدورات <ArrowLeft size={16} /></button></div><div className="hero-social"><div className="avatar-stack"><span>ن</span><span>ع</span><span>س</span><span>ل</span></div><span><b>أكثر من ٢٤ ألف</b><small>متعلّم بدأوا رحلتهم هنا</small></span><i className="social-sep" /><span className="social-rating"><Star fill="currentColor" size={15} /> ٤٫٩ <small>تقييم المتعلمين</small></span></div></div>
@@ -215,7 +257,7 @@ export default function Home() {
 
         <section className="courses-section" id="courses"><div className="section-heading"><div><span className="section-kicker">مسارات مختارة</span><h2>تعلّم ما <em>تحبّ.</em></h2><p>بداية صغيرة، وأثر كبير. اختر مهارتك القادمة.</p></div><button className="text-link" onClick={() => { setCategory("الكل"); setQuery(""); document.getElementById("courses")?.scrollIntoView({ behavior: "smooth" }); }}>كل الدورات <ArrowLeft size={16} /></button></div>
           <div className="category-row">{categories.map((item) => <button key={item} className={category === item ? "category-chip active" : "category-chip"} onClick={() => setCategory(item)}>{item === "الكل" && <Sparkles size={13} />}{item}</button>)}<span className="category-count">{filteredCourses.length} دورات</span></div>
-          <div className="course-grid">{filteredCourses.length ? filteredCourses.map((course) => <CourseCard key={course.id} course={course} onOpen={setFocusedCourse} onEnroll={enroll} enrolled={myCourses.includes(course.id)} />) : <div className="empty-courses"><Search size={24}/><b>لم نعثر على دورة بهذا البحث</b><span>جرّب كلمة أخرى أو اختر تصنيفاً مختلفاً.</span><button onClick={() => { setQuery(""); setCategory("الكل"); }}>عرض كل الدورات</button></div>}</div>
+          <div className="course-grid">{filteredCourses.length ? filteredCourses.map((course) => <CourseCard key={course.id} course={course} onOpen={setFocusedCourse} onEnroll={enroll} enrolled={myCourses.includes(course.id)} checkoutReady={Boolean(paymentReadiness.data?.checkoutConfigured)} />) : <div className="empty-courses"><Search size={24}/><b>لم نعثر على دورة بهذا البحث</b><span>جرّب كلمة أخرى أو اختر تصنيفاً مختلفاً.</span><button onClick={() => { setQuery(""); setCategory("الكل"); }}>عرض كل الدورات</button></div>}</div>
         </section>
         <section className="mentor-banner"><div className="mentor-art"><div className="mentor-disc"><GraduationCap size={45}/></div><span className="mentor-orbit m-orbit-one"/><span className="mentor-orbit m-orbit-two"/><span className="mentor-star">✦</span></div><div className="mentor-copy"><span className="section-kicker">لأصحاب الخبرة</span><h2>خبرتك تستحق<br /><em>أن تُشارك.</em></h2><p>اصنع دورة، وابنِ مجتمعاً حول ما تتقنه. رِواق يمنحك أدوات التعليم وإحصاءات واضحة عن نمو دخلك.</p><button className="button-dark" onClick={() => go("instructor")}>اكتشف مساحة المعلّم <ArrowLeft size={16} /></button></div><div className="mentor-stat"><span className="mentor-stat-icon"><Wallet size={18}/></span><b>دفتر إيرادات واضح</b><small>كل حصة، وكل استحقاق — بسجلّ دقيق.</small><span className="mentor-stat-bar"><i/></span><span className="mentor-stat-foot">توزيعٌ منصف، وشفافية في كل خطوة</span></div></section>
         <section className="quote-strip"><span className="quote-mark">“</span><p>التعلّم الحقيقي لا ينتهي عند مشاهدة الدرس؛ يبدأ حين يصبح ما تعلّمته جزءاً من يومك.</p><span className="quote-by"><span className="tiny-avatar">ر</span>من مجتمع رِواق</span></section>
@@ -236,7 +278,7 @@ export default function Home() {
 
     {!sidebar && <footer className="site-footer"><Brand onClick={() => go("discover")}/><span>تعلّم يُشبهك. معرفة تبقى معك.</span><span>© رِواق ٢٠٢٦</span><button onClick={() => toast("سياسة الخصوصية", { description: "تعرّف على كيفية حماية رِواق لبياناتك." })}>الخصوصية</button><button onClick={() => toast("تواصل معنا", { description: "مرحباً، اكتب لنا على hello@riwaq.academy" })}>تواصل معنا</button></footer>}
 
-    {focusedCourse && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFocusedCourse(null); }}><section className="course-dialog" role="dialog" aria-modal="true" aria-label={`تفاصيل ${focusedCourse.title}`}><button className="modal-close" onClick={() => setFocusedCourse(null)} aria-label="إغلاق"><X size={19}/></button><div className={`dialog-cover ${focusedCourse.color}`}><span>{focusedCourse.icon}</span><small>{focusedCourse.category} · {focusedCourse.level}</small><span className="dialog-cover-spark">✳</span></div><div className="dialog-content"><span className="section-kicker">دورة مختارة في {focusedCourse.category}</span><h2>{focusedCourse.title}</h2><div className="dialog-teacher"><span className="tiny-avatar">{focusedCourse.instructor.slice(0,1)}</span><span>يقدّمها <b>{focusedCourse.instructor}</b></span><span className="dialog-rating"><Star size={14} fill="currentColor"/> {focusedCourse.rating}</span></div><p>تعلّم بخطوات عملية واضحة، وطبّق المفاهيم مباشرة على مشروع يساعدك في حياتك المهنية. وصول دائم للمحتوى وتحديثاته.</p><div className="dialog-info-grid"><span><BookOpen size={16}/>{focusedCourse.lessons} درساً</span><span><Clock3 size={16}/>{focusedCourse.hours} ساعات محتوى</span><span><Award size={16}/>شهادة إنجاز</span><span><Headphones size={16}/>تعلم بالسرعة التي تناسبك</span></div><div className="curriculum-preview"><b>ما ستتعلّمه</b><span><Check size={15}/>المفاهيم الأساسية والأدوات العملية</span><span><Check size={15}/>تطبيقات واقعية ومشروع قابل للمشاركة</span><span><Check size={15}/>خطوات واضحة تساعدك على الاستمرار</span></div><div className="dialog-cta"><div><small>سعر الدورة</small><b>{money(focusedCourse.price)}</b><span>دفع لمرة واحدة · وصول دائم</span></div><button className="button-dark" onClick={() => enroll(focusedCourse)}>{myCourses.includes(focusedCourse.id) ? "اذهب إلى دورتي" : "أضف إلى مساري"}<ArrowLeft size={15}/></button><button className="dialog-save" onClick={() => toggleSaved(focusedCourse)} aria-label="حفظ"><Bookmark size={17} fill={savedCourses.includes(focusedCourse.id) ? "currentColor" : "none"}/></button></div><div className="dialog-safe"><ShieldCheck size={14}/>عملية دفع آمنة · يمكنك استرداد الجزء غير المكتسب وفق السياسة</div></div></section></div>}
+    {focusedCourse && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFocusedCourse(null); }}><section className="course-dialog" role="dialog" aria-modal="true" aria-label={`تفاصيل ${focusedCourse.title}`}><button className="modal-close" onClick={() => setFocusedCourse(null)} aria-label="إغلاق"><X size={19}/></button><div className={`dialog-cover ${focusedCourse.color}`}><span>{focusedCourse.icon}</span><small>{focusedCourse.category} · {focusedCourse.level}</small><span className="dialog-cover-spark">✳</span></div><div className="dialog-content"><span className="section-kicker">دورة مختارة في {focusedCourse.category}</span><h2>{focusedCourse.title}</h2><div className="dialog-teacher"><span className="tiny-avatar">{focusedCourse.instructor.slice(0,1)}</span><span>يقدّمها <b>{focusedCourse.instructor}</b></span><span className="dialog-rating"><Star size={14} fill="currentColor"/> {focusedCourse.rating}</span></div><p>تعلّم بخطوات عملية واضحة، وطبّق المفاهيم مباشرة على مشروع يساعدك في حياتك المهنية. وصول دائم للمحتوى وتحديثاته.</p><div className="dialog-info-grid"><span><BookOpen size={16}/>{focusedCourse.lessons} درساً</span><span><Clock3 size={16}/>{focusedCourse.hours} ساعات محتوى</span><span><Award size={16}/>شهادة إنجاز</span><span><Headphones size={16}/>تعلم بالسرعة التي تناسبك</span></div><div className="curriculum-preview"><b>ما ستتعلّمه</b><span><Check size={15}/>المفاهيم الأساسية والأدوات العملية</span><span><Check size={15}/>تطبيقات واقعية ومشروع قابل للمشاركة</span><span><Check size={15}/>خطوات واضحة تساعدك على الاستمرار</span></div><div className="dialog-cta"><div><small>سعر الدورة</small><b>{money(focusedCourse.price)}</b><span>دفع لمرة واحدة · وصول دائم</span></div><button className="button-dark" onClick={() => enroll(focusedCourse)} disabled={checkoutMutation.isPending || (!myCourses.includes(focusedCourse.id) && !paymentReadiness.data?.checkoutConfigured)}>{myCourses.includes(focusedCourse.id) ? "افتح دورتي" : checkoutMutation.isPending ? "جارٍ تجهيز الدفع…" : paymentReadiness.data?.checkoutConfigured ? "اشترِ الدورة" : "الدفع غير مفعّل"}<ArrowLeft size={15}/></button><button className="dialog-save" onClick={() => toggleSaved(focusedCourse)} aria-label="حفظ"><Bookmark size={17} fill={savedCourses.includes(focusedCourse.id) ? "currentColor" : "none"}/></button></div><div className="dialog-safe"><ShieldCheck size={14}/>يفتح Stripe لإتمام الدفع؛ لا نفتح الدورة حتى يصل تأكيد الدفع الموثّق.</div></div></section></div>}
 
     {showCreate && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowCreate(false); }}><section className="create-dialog" role="dialog" aria-modal="true" aria-label="إنشاء دورة"><button className="modal-close" onClick={() => setShowCreate(false)} aria-label="إغلاق"><X size={19}/></button><span className="section-kicker">خطوة أولى نحو مشاركة خبرتك</span><h2>دورة جديدة، <em>وأثر جديد.</em></h2><p>أنشئ مسودة الدورة، ثم أضف الدروس والتفاصيل قبل النشر.</p><form onSubmit={createCourse}><label>عنوان الدورة<input autoFocus value={newCourseTitle} onChange={(e) => setNewCourseTitle(e.target.value)} placeholder="مثال: مقدمة في التفكير التصميمي" maxLength={90}/></label><label>التصنيف<select value={newCourseCategory} onChange={(e) => setNewCourseCategory(e.target.value)}>{categories.filter((item) => item !== "الكل").map((item) => <option key={item}>{item}</option>)}</select></label><div className="create-dialog-actions"><button type="button" className="cancel-button" onClick={() => setShowCreate(false)}>إلغاء</button><button className="button-dark" type="submit"><Plus size={16}/> إنشاء المسودة</button></div></form><div className="create-note"><ShieldCheck size={15}/>ستُحفظ كمسودة؛ لن تظهر للطلاب قبل مراجعتها ونشرها.</div></section></div>}
   </div>;
