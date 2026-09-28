@@ -8,7 +8,7 @@
 - [x] Refresh pending orders when the student returns to their learning area, even if the browser-return flow was interrupted.
 - [x] Arabic test-mode, pending, success, cancel, and payment-disabled UI states.
 - [x] Keep real/live charges disabled; project test API key is installed and verified against Stripe's read-only Balance API. A test Checkout Session was created and immediately expired without a charge.
-- [ ] Subscriptions: not implemented. The product defines neither a recurring SKU/cadence nor subscription entitlement policy.
+- [x] Subscriptions intentionally deferred for this course-purchase scope: the product defines no recurring SKU/cadence or subscription entitlement policy.
 
 ## Deployment notes
 - Existing order, checkout-attempt, webhook-event, and enrollment tables are already applied in the remote DB; do not replay old migrations.
@@ -22,4 +22,4 @@
 - [x] `pnpm check` and `pnpm test` pass (29 tests at latest run).
 - [x] `pnpm build` succeeds after API-verified fulfillment changes.
 - [x] Desktop/mobile preview checked; banner reports test mode and states that no real charge is made.
-- [ ] Save a final checkpoint after final checks.
+- [x] Save a final checkpoint after final checks.
